@@ -1,0 +1,371 @@
+"use client";
+
+import React, { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
+import { api } from "@/lib/api";
+import { ChevronUp, ChevronDown } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+
+interface Props {
+  selectedStatuses: string[];
+  setSelectedStatuses: (v: string[]) => void;
+  selectedCallStats: string[];
+  setSelectedCallStats: (v: string[]) => void;
+}
+
+const PASTEL = [
+  "#93c5fd",
+  "#86efac",
+  "#fca5a5",
+  "#fcd34d",
+  "#c4b5fd",
+  "#67e8f9",
+  "#fdba74",
+  "#f9a8d4",
+  "#a3e635",
+  "#6ee7b7",
+];
+
+const CALL_COLORS: Record<string, string> = {
+  Attempted: "#6366f1",
+  Connected: "#22c55e",
+  Pending: "#f59e0b",
+  Skipped: "#ef4444",
+};
+
+/* ═══════════════════════════════════════
+   PIE (left) + SCROLLABLE LEGEND (right)
+   matches manager dashboard layout exactly
+   ═══════════════════════════════════════ */
+function PieWithLegend({
+  data,
+  selected,
+  onToggle,
+  valueLabel = (d: any) => `(${d.pct ?? d.value})`,
+}: {
+  data: { name: string; value: number; pct?: number; color: string }[];
+  selected: string[];
+  onToggle: (name: string) => void;
+  valueLabel?: (d: any) => string;
+}) {
+  // Give 0-value slices a tiny display value so pie renders fully
+  const chartData = data.map((d) => ({
+    ...d,
+    _display: d.value === 0 ? 0.3 : d.value,
+  }));
+
+  const CustomTooltip = ({ active, payload }: any) => {
+    if (!active || !payload?.length) return null;
+    const d = payload[0].payload;
+    return (
+      <div className="bg-white border border-gray-200 rounded-lg shadow-lg px-3 py-2 text-xs">
+        <p className="font-semibold text-gray-800">{d.name}</p>
+        <p className="text-gray-500">{d.value} leads</p>
+      </div>
+    );
+  };
+
+  return (
+    <div className="flex items-stretch gap-4">
+      {/* ── Pie chart ── */}
+      <div className="flex-shrink-0 w-[120px] h-[140px]">
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
+            <Pie
+              data={chartData}
+              dataKey="value"
+              nameKey="name"
+              cx="50%"
+              cy="50%"
+              outerRadius={55}
+              paddingAngle={2}
+              onClick={(d) => onToggle(d.name)}
+              style={{ cursor: "pointer" }}
+            >
+              {chartData.map((entry) => (
+                <Cell
+                  key={entry.name}
+                  fill={entry.color}
+                  opacity={
+                    selected.length === 0 || selected.includes(entry.name)
+                      ? entry.value > 0
+                        ? 1
+                        : 0.15
+                      : 0.15
+                  }
+                  stroke="#fff"
+                  strokeWidth={2}
+                />
+              ))}
+            </Pie>
+            <Tooltip content={<CustomTooltip />} />
+          </PieChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* ── Scrollable legend list ── */}
+      <div
+        className="flex-1 min-w-0 overflow-y-auto"
+        style={{
+          maxHeight: 140,
+          scrollbarWidth: "thin",
+          scrollbarColor: "#e5e7eb transparent",
+        }}
+      >
+        <div className="space-y-0.5 pr-1">
+          {data.map((item) => (
+            <div
+              key={item.name}
+              onClick={() => onToggle(item.name)}
+              className={`flex items-center justify-between px-2 py-1.5 rounded cursor-pointer transition-colors ${
+                selected.includes(item.name)
+                  ? "bg-indigo-50 border border-indigo-200"
+                  : "hover:bg-gray-50"
+              }`}
+            >
+              <div className="flex items-center gap-1.5 min-w-0">
+                <div
+                  className="w-3 h-3  flex-shrink-0"
+                  style={{ backgroundColor: item.color }}
+                />
+                <span className="text-xs text-gray-700 truncate">
+                  {item.name}
+                </span>
+              </div>
+              <span className="text-xs text-gray-500 flex-shrink-0 ml-2">
+                {valueLabel(item)}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════════
+   COLLAPSIBLE SECTION
+   ══════════════════ */
+function Section({
+  title,
+  open,
+  onToggle,
+  children,
+}: {
+  title: string;
+  open: boolean;
+  onToggle: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <section>
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-sm font-semibold text-gray-800">{title}</h3>
+        <button
+          onClick={onToggle}
+          className="text-gray-400 hover:text-gray-600"
+        >
+          {open ? (
+            <ChevronUp className="w-4 h-4" />
+          ) : (
+            <ChevronDown className="w-4 h-4" />
+          )}
+        </button>
+      </div>
+      {open && children}
+    </section>
+  );
+}
+
+/* ══════════════════════
+   MAIN COMPONENT
+   ══════════════════════ */
+export default function CallerFilterSidebar({
+  selectedStatuses,
+  setSelectedStatuses,
+  selectedCallStats,
+  setSelectedCallStats,
+}: Props) {
+  const [statusOpen, setStatusOpen] = useState(true);
+  const [callOpen, setCallOpen] = useState(true);
+
+  const { data: leads = [] } = useQuery({
+    queryKey: ["my-leads"],
+    queryFn: async () => (await api.get("/leads/my-leads")).data,
+  });
+
+  const { data: pipeline } = useQuery({
+    queryKey: ["pipeline"],
+    queryFn: async () => (await api.get("/pipeline")).data,
+  });
+
+  /* ── All pipeline statuses (include 0-count ones) ── */
+  const allStatuses = useMemo(() => {
+    const initial = (pipeline?.initialStage || []).map(
+      (name: string, i: number) => ({
+        name,
+        color: "#466e62",
+      }),
+    );
+    const active = (pipeline?.activeStage || []).map((s: any, i: number) => ({
+      name: s.name,
+      color: s.color || PASTEL[(i + 3) % PASTEL.length],
+    }));
+    const closed = (pipeline?.closedStage || []).map((s: any, i: number) => ({
+      name: s.name,
+      color: s.color || PASTEL[(i + 6) % PASTEL.length],
+    }));
+    return [...initial, ...active, ...closed];
+  }, [pipeline]);
+
+  /* ── Status chart data — ALL statuses, even 0-count ── */
+  const statusData = useMemo(() => {
+    const counts: Record<string, number> = {};
+    leads.forEach((l: any) => {
+      counts[l.status] = (counts[l.status] || 0) + 1;
+    });
+    const total = leads.length || 1;
+    return allStatuses.map((s) => ({
+      name: s.name,
+      value: counts[s.name] || 0,
+      pct: Math.round(((counts[s.name] || 0) / total) * 100),
+      color: s.color,
+    }));
+  }, [leads, allStatuses]);
+
+  /* ── Call stats data ── */
+  const callData = useMemo(() => {
+    let attempted = 0,
+      connected = 0,
+      pending = 0,
+      skipped = 0;
+    const notConnected = ["RNR", "Busy", "Switched Off", "Not Picked Up"];
+    const isConnected = [
+      "Interested",
+      "Connected",
+      "Callback Scheduled",
+      "Call Later",
+    ];
+    leads.forEach((l: any) => {
+      if (l.calledToday) {
+        attempted++;
+        if (notConnected.includes(l.status)) skipped++;
+        else if (isConnected.includes(l.status)) connected++;
+        else pending++;
+      } else {
+        pending++;
+      }
+    });
+    const total = leads.length || 1;
+    return [
+      {
+        name: "Attempted",
+        value: attempted,
+        pct: Math.round((attempted / total) * 100),
+        color: CALL_COLORS.Attempted,
+      },
+      {
+        name: "Connected",
+        value: connected,
+        pct: Math.round((connected / total) * 100),
+        color: CALL_COLORS.Connected,
+      },
+      {
+        name: "Pending",
+        value: pending,
+        pct: Math.round((pending / total) * 100),
+        color: CALL_COLORS.Pending,
+      },
+      {
+        name: "Skipped",
+        value: skipped,
+        pct: Math.round((skipped / total) * 100),
+        color: CALL_COLORS.Skipped,
+      },
+    ];
+  }, [leads]);
+
+  const totalFilters = selectedStatuses.length + selectedCallStats.length;
+
+  const toggleStatus = (name: string) =>
+    setSelectedStatuses(
+      selectedStatuses.includes(name)
+        ? selectedStatuses.filter((s) => s !== name)
+        : [...selectedStatuses, name],
+    );
+
+  const toggleCall = (name: string) =>
+    setSelectedCallStats(
+      selectedCallStats.includes(name)
+        ? selectedCallStats.filter((s) => s !== name)
+        : [...selectedCallStats, name],
+    );
+
+  return (
+    <div className="h-full flex flex-col bg-white">
+      {/* ── HEADER ── */}
+      <div className="px-5 py-4 border-b flex items-center justify-between flex-shrink-0">
+        <h2 className="font-bold text-base text-gray-900">My Overview</h2>
+        {totalFilters > 0 && (
+          <div className="flex items-center gap-2">
+            <Badge className="bg-indigo-100 text-indigo-700 border-0 text-xs">
+              {totalFilters} filter{totalFilters > 1 ? "s" : ""}
+            </Badge>
+            <button
+              onClick={() => {
+                setSelectedStatuses([]);
+                setSelectedCallStats([]);
+              }}
+              className="text-xs text-gray-400 hover:text-gray-600 underline"
+            >
+              Clear
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* ── SCROLLABLE BODY ── */}
+      <div
+        className="flex-1 overflow-y-auto px-5 py-5 space-y-6"
+        style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+      >
+        {/* ── Leads Status Report ── */}
+        <Section
+          title="Leads Status Report"
+          open={statusOpen}
+          onToggle={() => setStatusOpen((v) => !v)}
+        >
+          {statusData.length === 0 ? (
+            <p className="text-xs text-gray-400 text-center py-6 bg-gray-50 rounded-lg">
+              No leads assigned yet
+            </p>
+          ) : (
+            <PieWithLegend
+              data={statusData}
+              selected={selectedStatuses}
+              onToggle={toggleStatus}
+              valueLabel={(d) => `(${d.pct}%)`}
+            />
+          )}
+        </Section>
+
+        <div className="border-t border-gray-100" />
+
+        {/* ── Campaign Calling Report ── */}
+        <Section
+          title="Campaign Calling Report"
+          open={callOpen}
+          onToggle={() => setCallOpen((v) => !v)}
+        >
+          <PieWithLegend
+            data={callData}
+            selected={selectedCallStats}
+            onToggle={toggleCall}
+            valueLabel={(d) => `(${d.pct}%)`}
+          />
+        </Section>
+      </div>
+    </div>
+  );
+}
