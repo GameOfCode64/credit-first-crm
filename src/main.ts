@@ -3,7 +3,10 @@ import { app, BrowserWindow, screen } from "electron";
 import started from "electron-squirrel-startup";
 import { updateElectronApp } from "update-electron-app";
 
-updateElectronApp();
+// Only run auto-update when not in development mode
+if (!MAIN_WINDOW_VITE_DEV_SERVER_URL) {
+  updateElectronApp();
+}
 
 if (started) {
   app.quit();
@@ -27,7 +30,6 @@ const createWindow = () => {
   // Maximize the window for better full-screen experience
   mainWindow.maximize();
 
-  // Create menu and load the index.html of the app.
   if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
     mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
     // Open the DevTools only in development.

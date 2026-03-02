@@ -1,7 +1,7 @@
 {
   "name": "credit-first-crm",
   "productName": "credit-first-crm",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "repository": "https://github.com/GameOfCode64/credit-first-crm",
   "description": "credit first crm desktop application",
   "main": ".vite/build/main.js",
@@ -14,29 +14,6 @@
     "lint": "eslint --ext .ts,.tsx ."
   },
   "keywords": [],
-  "config": {
-    "forge": {
-      "packagerConfig": {},
-      "makers": [
-        {
-          "name": "@electron-forge/maker-zip"
-        }
-      ],
-      "publishers": [
-        {
-          "name": "@electron-forge/publisher-github",
-          "config": {
-            "repository": {
-              "owner": "GameOfCode64",
-              "name": "credit-first-crm"
-            },
-            "prerelease": false,
-            "draft": true
-          }
-        }
-      ]
-    }
-  },
   "author": {
     "name": "GameOfCode64",
     "email": "gameofcode64@gmail.com"
