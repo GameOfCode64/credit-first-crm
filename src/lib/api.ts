@@ -4,7 +4,6 @@ export const api = axios.create({
   baseURL:
     import.meta.env.BACKEND_API_URL ||
     "https://pro-crm-backend.onrender.com/api/crm",
-  // "http://localhost:5000/api/crm",
 });
 
 // Attach token automatically
