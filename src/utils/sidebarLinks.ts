@@ -15,6 +15,7 @@ import {
   Form,
   PhoneCall,
   Unplug,
+  Search,
 } from "lucide-react";
 
 interface NavigationProps {
@@ -72,13 +73,18 @@ export const getNavigationItems = ({ role }: NavigationProps) => {
           href: "/manager/dashboard",
           icon: LayoutDashboard,
         },
+        {
+          title: "Search",
+          href: "/manager/search",
+          icon: Search,
+        },
       ],
       sections: [
         {
           label: "Team Management",
           items: [
             { title: "Leads", href: "/manager/leads", icon: Target },
-            // { title: "Team", href: "/manager/team", icon: Users },
+            { title: "Team", href: "/manager/team-management", icon: Users },
             {
               title: "Uploads Leads",
               href: "/manager/uploads",
@@ -109,11 +115,6 @@ export const getNavigationItems = ({ role }: NavigationProps) => {
               href: "/manager/reports",
               icon: FileChartPie,
             },
-            // {
-            //   title: "Leaderboard",
-            //   href: "/manager/leaderboard",
-            //   icon: Trophy,
-            // },
             {
               title: "Integrations",
               href: "/manager/integrations",
@@ -133,6 +134,21 @@ export const getNavigationItems = ({ role }: NavigationProps) => {
           href: "/employee/dashboard",
           icon: LayoutDashboard,
         },
+        {
+          title: "Search",
+          href: "/employee/search",
+          icon: Search,
+        },
+        {
+          title: "My Calls",
+          href: "/employee/my-calls",
+          icon: Phone,
+        },
+        {
+          title: "Calling Report",
+          href: "/employee/calling-report",
+          icon: FileChartPie,
+        },
       ],
       sections: [
         {
@@ -145,16 +161,6 @@ export const getNavigationItems = ({ role }: NavigationProps) => {
             },
           ],
         },
-        // {
-        //   label: "Sales & Leads",
-        //   items: [
-        //     {
-        //       title: "Leaderboard",
-        //       href: "/employee/leaderboard",
-        //       icon: Trophy,
-        //     },
-        //   ],
-        // },
       ],
     };
   }

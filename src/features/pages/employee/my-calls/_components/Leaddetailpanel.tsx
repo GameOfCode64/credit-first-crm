@@ -52,6 +52,9 @@ import { cn } from "@/lib/utils";
 interface Props {
   leadId: string | null;
   onNext: (nextId: string | null) => void;
+  /** Pass the visible filtered list so Next advances correctly.
+   *  Falls back to /leads/my-leads if omitted. */
+  allLeads?: { id: string }[];
 }
 
 const copyToClipboard = (text: string) => {
@@ -215,7 +218,11 @@ function ActivityRow({ activity, index, total, formatRelativeTime }: any) {
 /* ════════════════════════════════════════
    MAIN COMPONENT
    ════════════════════════════════════════ */
-export default function LeadDetailPanel({ leadId, onNext }: Props) {
+export default function LeadDetailPanel({
+  leadId,
+  onNext,
+  allLeads: allLeadsProp,
+}: Props) {
   const queryClient = useQueryClient();
 
   const [outcomeId, setOutcomeId] = useState<string | null>(null);
@@ -257,10 +264,13 @@ export default function LeadDetailPanel({ leadId, onNext }: Props) {
     queryFn: async () => (await api.get("/forms/active")).data,
   });
 
-  const { data: myLeads = [] } = useQuery({
+  /* Use the parent-provided list for Next navigation; fall back to my-leads */
+  const { data: myLeadsFallback = [] } = useQuery({
     queryKey: ["my-leads"],
     queryFn: async () => (await api.get("/leads/my-leads")).data,
+    enabled: !allLeadsProp,
   });
+  const myLeads: { id: string }[] = allLeadsProp ?? myLeadsFallback;
 
   const completeMutation = useMutation({
     mutationFn: async (data: any) => {
@@ -312,7 +322,7 @@ export default function LeadDetailPanel({ leadId, onNext }: Props) {
   const normalizeStage = (stage: any[] = []) =>
     stage.map((o: any) =>
       typeof o === "string"
-        ? { id: o, name: o, color: "#466e62", reasons: [] }
+        ? { id: o, name: o, color: "#6b7280", reasons: [] }
         : o,
     );
 

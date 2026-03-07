@@ -6,6 +6,7 @@ import {
   CardHeader,
   CardTitle,
 } from "../../../../components/ui/card";
+
 import DisplayCampaigns from "./_components/DisplayCampaigns";
 
 const ManagerLeadsPage = () => {

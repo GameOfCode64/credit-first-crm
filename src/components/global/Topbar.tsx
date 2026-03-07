@@ -34,9 +34,8 @@ const Topbar = () => {
 
   const logout = () => {
     localStorage.clear();
-    window.location.href = "/";
+    window.location.reload();
   };
-
   return (
     <div className="w-full h-[55px] sticky top-0 z-40 flex items-center px-4 bg-white border-b border-gray-200 shadow-sm">
       <div className="flex w-full items-center justify-between">

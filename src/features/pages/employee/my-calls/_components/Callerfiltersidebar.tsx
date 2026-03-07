@@ -36,7 +36,6 @@ const CALL_COLORS: Record<string, string> = {
 
 /* ═══════════════════════════════════════
    PIE (left) + SCROLLABLE LEGEND (right)
-   matches manager dashboard layout exactly
    ═══════════════════════════════════════ */
 function PieWithLegend({
   data,
@@ -49,11 +48,8 @@ function PieWithLegend({
   onToggle: (name: string) => void;
   valueLabel?: (d: any) => string;
 }) {
-  // Give 0-value slices a tiny display value so pie renders fully
-  const chartData = data.map((d) => ({
-    ...d,
-    _display: d.value === 0 ? 0.3 : d.value,
-  }));
+  /* Filter out 0-value slices so the pie is perfectly solid */
+  const chartData = data.filter((d) => d.value > 0);
 
   const CustomTooltip = ({ active, payload }: any) => {
     if (!active || !payload?.length) return null;
@@ -68,7 +64,7 @@ function PieWithLegend({
 
   return (
     <div className="flex items-stretch gap-4">
-      {/* ── Pie chart ── */}
+      {/* ── Solid pie — no paddingAngle, no stroke ── */}
       <div className="flex-shrink-0 w-[120px] h-[140px]">
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
@@ -79,9 +75,10 @@ function PieWithLegend({
               cx="50%"
               cy="50%"
               outerRadius={55}
-              paddingAngle={2}
+              paddingAngle={0}
               onClick={(d) => onToggle(d.name)}
               style={{ cursor: "pointer" }}
+              strokeWidth={0}
             >
               {chartData.map((entry) => (
                 <Cell
@@ -89,13 +86,10 @@ function PieWithLegend({
                   fill={entry.color}
                   opacity={
                     selected.length === 0 || selected.includes(entry.name)
-                      ? entry.value > 0
-                        ? 1
-                        : 0.15
-                      : 0.15
+                      ? 1
+                      : 0.7
                   }
-                  stroke="#fff"
-                  strokeWidth={2}
+                  stroke="none"
                 />
               ))}
             </Pie>
@@ -104,7 +98,7 @@ function PieWithLegend({
         </ResponsiveContainer>
       </div>
 
-      {/* ── Scrollable legend list ── */}
+      {/* ── Scrollable legend — shows ALL items including 0-count ── */}
       <div
         className="flex-1 min-w-0 overflow-y-auto"
         style={{
@@ -126,8 +120,11 @@ function PieWithLegend({
             >
               <div className="flex items-center gap-1.5 min-w-0">
                 <div
-                  className="w-3 h-3  flex-shrink-0"
-                  style={{ backgroundColor: item.color }}
+                  className="w-3 h-3 rounded-sm flex-shrink-0"
+                  style={{
+                    backgroundColor: item.color,
+                    opacity: item.value === 0 ? 0.3 : 1,
+                  }}
                 />
                 <span className="text-xs text-gray-700 truncate">
                   {item.name}
@@ -202,12 +199,10 @@ export default function CallerFilterSidebar({
 
   /* ── All pipeline statuses (include 0-count ones) ── */
   const allStatuses = useMemo(() => {
-    const initial = (pipeline?.initialStage || []).map(
-      (name: string, i: number) => ({
-        name,
-        color: "#466e62",
-      }),
-    );
+    const initial = (pipeline?.initialStage || []).map((name: string) => ({
+      name,
+      color: "#466e62",
+    }));
     const active = (pipeline?.activeStage || []).map((s: any, i: number) => ({
       name: s.name,
       color: s.color || PASTEL[(i + 3) % PASTEL.length],
@@ -219,7 +214,7 @@ export default function CallerFilterSidebar({
     return [...initial, ...active, ...closed];
   }, [pipeline]);
 
-  /* ── Status chart data — ALL statuses, even 0-count ── */
+  /* ── Status chart data ── */
   const statusData = useMemo(() => {
     const counts: Record<string, number> = {};
     leads.forEach((l: any) => {
@@ -328,9 +323,14 @@ export default function CallerFilterSidebar({
       {/* ── SCROLLABLE BODY ── */}
       <div
         className="flex-1 overflow-y-auto px-5 py-5 space-y-6"
-        style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+        style={
+          {
+            scrollbarWidth: "none",
+            msOverflowStyle: "none",
+          } as React.CSSProperties
+        }
       >
-        {/* ── Leads Status Report ── */}
+        {/* Leads Status Report */}
         <Section
           title="Leads Status Report"
           open={statusOpen}
@@ -352,7 +352,7 @@ export default function CallerFilterSidebar({
 
         <div className="border-t border-gray-100" />
 
-        {/* ── Campaign Calling Report ── */}
+        {/* Campaign Calling Report */}
         <Section
           title="Campaign Calling Report"
           open={callOpen}

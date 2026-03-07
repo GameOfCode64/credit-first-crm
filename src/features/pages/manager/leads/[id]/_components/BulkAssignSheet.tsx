@@ -20,7 +20,6 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { X } from "lucide-react";
 import { toast } from "sonner";
 
 import { api } from "@/lib/api";
@@ -45,7 +44,8 @@ export default function BulkAssignSheet({ open, onClose, campaignId }: Props) {
 
   const isSelectedMode = selectedIds.length > 0;
 
-  const [selectedStatus, setSelectedStatus] = useState<string>("");
+  // ← default "FRESH" here
+  const [selectedStatus, setSelectedStatus] = useState<string>("FRESH");
   const [fromValue, setFromValue] = useState<number>(1);
   const [toValue, setToValue] = useState<number>(0);
   const [selectedEmployees, setSelectedEmployees] = useState<
@@ -54,7 +54,6 @@ export default function BulkAssignSheet({ open, onClose, campaignId }: Props) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   /* ================= FETCH CAMPAIGN TOTAL ================= */
-
   const { data: countData } = useQuery({
     queryKey: ["campaign-lead-count", campaignId],
     queryFn: async () =>
@@ -71,8 +70,7 @@ export default function BulkAssignSheet({ open, onClose, campaignId }: Props) {
     }
   }, [isSelectedMode, totalLeads]);
 
-  /* ================= FETCH STATUS ================= */
-
+  /* ================= FETCH PIPELINE STATUSES ================= */
   const { data: pipeline } = useQuery({
     queryKey: ["pipeline"],
     queryFn: async () => (await api.get("/pipeline")).data,
@@ -80,23 +78,16 @@ export default function BulkAssignSheet({ open, onClose, campaignId }: Props) {
   });
 
   const allStatuses = [
-    ...(pipeline?.initialStage?.map((item: any) => {
-      if (typeof item === "object" && item !== null) {
-        return item;
-      }
-      return {
-        name: item,
-        color: "#9ca3af",
-        key: item,
-        stage: "INITIAL",
-      };
-    }) ?? []),
+    ...(pipeline?.initialStage?.map((item: any) =>
+      typeof item === "object" && item !== null
+        ? item
+        : { name: item, color: "#9ca3af", key: item, stage: "INITIAL" },
+    ) ?? []),
     ...(pipeline?.activeStage ?? []),
     ...(pipeline?.closedStage ?? []),
   ];
 
   /* ================= FETCH EMPLOYEES ================= */
-
   const { data: employees } = useQuery({
     queryKey: ["employees"],
     queryFn: async () => (await api.get("/users/employees")).data,
@@ -104,7 +95,6 @@ export default function BulkAssignSheet({ open, onClose, campaignId }: Props) {
   });
 
   /* ================= EMPLOYEE SELECTION ================= */
-
   const totalLeadsToAssign = isSelectedMode
     ? selectedIds.length
     : toValue - fromValue + 1;
@@ -112,63 +102,51 @@ export default function BulkAssignSheet({ open, onClose, campaignId }: Props) {
   const toggleEmployee = (employee: any) => {
     setSelectedEmployees((prev) => {
       const exists = prev.find((e) => e.id === employee.id);
-
       if (exists) {
-        const filtered = prev.filter((e) => e.id !== employee.id);
-        return recalculatePercentages(filtered, totalLeadsToAssign);
-      } else {
-        const newList = [
-          ...prev,
-          {
-            id: employee.id,
-            name: employee.name,
-            percentage: 0,
-            count: 0,
-          },
-        ];
-        return recalculatePercentages(newList, totalLeadsToAssign);
+        return recalculatePercentages(
+          prev.filter((e) => e.id !== employee.id),
+          totalLeadsToAssign,
+        );
       }
+      return recalculatePercentages(
+        [
+          ...prev,
+          { id: employee.id, name: employee.name, percentage: 0, count: 0 },
+        ],
+        totalLeadsToAssign,
+      );
     });
   };
 
   const recalculatePercentages = (
-    employeeList: EmployeeDistribution[],
-    totalCount: number,
+    list: EmployeeDistribution[],
+    total: number,
   ): EmployeeDistribution[] => {
-    if (employeeList.length === 0) return [];
-
-    const equalPercentage = Math.floor(100 / employeeList.length);
-    const remainder = 100 - equalPercentage * employeeList.length;
-
-    return employeeList.map((emp, index) => {
-      const percentage =
-        index === 0 ? equalPercentage + remainder : equalPercentage;
-      const count = Math.round((percentage / 100) * totalCount);
-
+    if (!list.length) return [];
+    const equal = Math.floor(100 / list.length);
+    const remainder = 100 - equal * list.length;
+    return list.map((emp, i) => {
+      const pct = i === 0 ? equal + remainder : equal;
       return {
         ...emp,
-        percentage,
-        count,
+        percentage: pct,
+        count: Math.round((pct / 100) * total),
       };
     });
   };
 
-  const updateEmployeePercentage = (
-    employeeId: string,
-    newPercentage: number,
-  ) => {
-    setSelectedEmployees((prev) => {
-      const updated = prev.map((emp) =>
-        emp.id === employeeId
+  const updateEmployeePercentage = (id: string, pct: number) => {
+    setSelectedEmployees((prev) =>
+      prev.map((emp) =>
+        emp.id === id
           ? {
               ...emp,
-              percentage: newPercentage,
-              count: Math.round((newPercentage / 100) * totalLeadsToAssign),
+              percentage: pct,
+              count: Math.round((pct / 100) * totalLeadsToAssign),
             }
           : emp,
-      );
-      return updated;
-    });
+      ),
+    );
   };
 
   useEffect(() => {
@@ -183,36 +161,32 @@ export default function BulkAssignSheet({ open, onClose, campaignId }: Props) {
   }, [totalLeadsToAssign]);
 
   const totalPercentage = selectedEmployees.reduce(
-    (sum, emp) => sum + emp.percentage,
+    (s, e) => s + e.percentage,
     0,
   );
 
-  /* ================= RESET ON CLOSE ================= */
-
+  /* ================= RESET ON CLOSE — keep FRESH as default ================= */
   useEffect(() => {
     if (!open) {
-      setSelectedStatus("");
+      setSelectedStatus("FRESH"); // ← reset to FRESH, not ""
       setSelectedEmployees([]);
       setFromValue(1);
       setToValue(0);
     }
   }, [open]);
 
-  /* ================= APPLY ================= */
-
+  /* ================= SUBMIT ================= */
   const handleSubmit = async () => {
     if (!selectedStatus && selectedEmployees.length === 0) {
       toast.error("Please select at least a status or employees");
       return;
     }
-
     if (selectedEmployees.length > 0 && totalPercentage !== 100) {
       toast.error("Total percentage must equal 100%");
       return;
     }
 
     setIsSubmitting(true);
-
     try {
       const employeeDistribution =
         selectedEmployees.length > 0
@@ -230,11 +204,9 @@ export default function BulkAssignSheet({ open, onClose, campaignId }: Props) {
           employeeDistribution,
         });
       } else {
-        const count = toValue - fromValue + 1;
-
         await api.post("/leads/bulk-update-campaign", {
           campaignId,
-          limit: count,
+          limit: toValue - fromValue + 1,
           offset: fromValue - 1,
           status: selectedStatus || undefined,
           employeeDistribution,
@@ -242,10 +214,7 @@ export default function BulkAssignSheet({ open, onClose, campaignId }: Props) {
       }
 
       toast.success("Leads assigned successfully!");
-
-      // Refresh leads data
       queryClient.invalidateQueries({ queryKey: ["leads", campaignId] });
-
       clearSelection();
       onClose();
     } catch (error: any) {
@@ -267,14 +236,13 @@ export default function BulkAssignSheet({ open, onClose, campaignId }: Props) {
 
         <ScrollArea className="h-[calc(100vh-120px)]">
           <div className="px-8 py-6 space-y-6">
-            {/* ================= SELECTED INFO ================= */}
-
+            {/* ── Selected info ── */}
             <div className="text-base leading-relaxed bg-[#fef9e7] p-4 rounded-lg border border-[#b98b08]/30">
               {isSelectedMode ? (
                 <p>
                   <span className="font-semibold text-[#7d6006]">
-                    Selected Leads:
-                  </span>{" "}
+                    Selected Leads:{" "}
+                  </span>
                   <span className="text-[#a47a07]">
                     {selectedIds.length} lead
                     {selectedIds.length !== 1 ? "s" : ""}
@@ -283,15 +251,14 @@ export default function BulkAssignSheet({ open, onClose, campaignId }: Props) {
               ) : (
                 <p>
                   <span className="font-semibold text-[#7d6006]">
-                    Total Campaign Leads:
-                  </span>{" "}
+                    Total Campaign Leads:{" "}
+                  </span>
                   <span className="text-[#a47a07]">{totalLeads} leads</span>
                 </p>
               )}
             </div>
 
-            {/* ================= FROM/TO RANGE ================= */}
-
+            {/* ── From / To range ── */}
             {!isSelectedMode && (
               <>
                 <div className="flex items-center gap-6">
@@ -305,15 +272,12 @@ export default function BulkAssignSheet({ open, onClose, campaignId }: Props) {
                       max={toValue}
                       value={fromValue}
                       onChange={(e) => {
-                        const val = Number(e.target.value);
-                        if (val >= 1 && val <= toValue) {
-                          setFromValue(val);
-                        }
+                        const v = Number(e.target.value);
+                        if (v >= 1 && v <= toValue) setFromValue(v);
                       }}
                       className="w-full h-11 border-2 border-[#b98b08]/40 focus:border-[#b98b08] rounded-lg text-center text-base"
                     />
                   </div>
-
                   <div className="flex items-center gap-3 flex-1">
                     <label className="text-base font-medium min-w-[40px]">
                       To:
@@ -324,10 +288,8 @@ export default function BulkAssignSheet({ open, onClose, campaignId }: Props) {
                       max={totalLeads}
                       value={toValue}
                       onChange={(e) => {
-                        const val = Number(e.target.value);
-                        if (val >= fromValue && val <= totalLeads) {
-                          setToValue(val);
-                        }
+                        const v = Number(e.target.value);
+                        if (v >= fromValue && v <= totalLeads) setToValue(v);
                       }}
                       className="w-full h-11 border-2 border-[#b98b08]/40 focus:border-[#b98b08] rounded-lg text-center text-base"
                     />
@@ -346,18 +308,15 @@ export default function BulkAssignSheet({ open, onClose, campaignId }: Props) {
               </>
             )}
 
-            {/* ================= STATUS ================= */}
-
+            {/* ── Status ── */}
             <div className="space-y-3">
               <label className="text-base font-semibold block">
                 Update Leads Status
               </label>
-
               <Select value={selectedStatus} onValueChange={setSelectedStatus}>
                 <SelectTrigger className="w-full h-12 border-2 border-[#b98b08]/40 focus:border-[#b98b08] rounded-lg text-base">
                   <SelectValue placeholder="Select Status (Optional)" />
                 </SelectTrigger>
-
                 <SelectContent>
                   {allStatuses.map((s: any) => (
                     <SelectItem
@@ -367,7 +326,7 @@ export default function BulkAssignSheet({ open, onClose, campaignId }: Props) {
                     >
                       <div className="flex items-center gap-2">
                         <span
-                          className="h-3 w-3 rounded-full"
+                          className="h-3 w-3 rounded-sm inline-block"
                           style={{ backgroundColor: s.color }}
                         />
                         {s.name}
@@ -378,8 +337,7 @@ export default function BulkAssignSheet({ open, onClose, campaignId }: Props) {
               </Select>
             </div>
 
-            {/* ================= EMPLOYEE DISTRIBUTION ================= */}
-
+            {/* ── Employee distribution ── */}
             <div className="space-y-4">
               <label className="text-base font-semibold block">
                 Assign to Employees with Distribution
@@ -400,7 +358,6 @@ export default function BulkAssignSheet({ open, onClose, campaignId }: Props) {
                     <span className="font-medium text-sm">{employee.name}</span>
                   </label>
                 ))}
-
                 {!employees?.length && (
                   <p className="text-sm text-gray-500 text-center py-4">
                     No employees found
@@ -421,7 +378,6 @@ export default function BulkAssignSheet({ open, onClose, campaignId }: Props) {
                       <div className="w-1/3">
                         <span className="text-sm font-medium">{emp.name}</span>
                       </div>
-
                       <div className="w-1/3">
                         <div className="flex items-center gap-2">
                           <Input
@@ -430,17 +386,15 @@ export default function BulkAssignSheet({ open, onClose, campaignId }: Props) {
                             max={100}
                             value={emp.percentage}
                             onChange={(e) => {
-                              const val = Number(e.target.value);
-                              if (val >= 0 && val <= 100) {
-                                updateEmployeePercentage(emp.id, val);
-                              }
+                              const v = Number(e.target.value);
+                              if (v >= 0 && v <= 100)
+                                updateEmployeePercentage(emp.id, v);
                             }}
                             className="h-9 text-center text-sm border-[#b98b08]/40 focus:border-[#b98b08]"
                           />
                           <span className="text-sm font-medium">%</span>
                         </div>
                       </div>
-
                       <div className="w-1/3 text-right">
                         <span className="text-sm font-semibold text-[#b98b08]">
                           {emp.count} leads
@@ -459,11 +413,7 @@ export default function BulkAssignSheet({ open, onClose, campaignId }: Props) {
                     <span>Total</span>
                     <span>{totalPercentage}%</span>
                     <span>
-                      {selectedEmployees.reduce(
-                        (sum, emp) => sum + emp.count,
-                        0,
-                      )}{" "}
-                      leads
+                      {selectedEmployees.reduce((s, e) => s + e.count, 0)} leads
                     </span>
                   </div>
 
@@ -476,8 +426,7 @@ export default function BulkAssignSheet({ open, onClose, campaignId }: Props) {
               )}
             </div>
 
-            {/* ================= BUTTON ================= */}
-
+            {/* ── Submit ── */}
             <Button
               onClick={handleSubmit}
               disabled={

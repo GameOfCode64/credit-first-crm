@@ -13,29 +13,35 @@ interface Props {
   selectedLeadId: string | null;
   onSelectLead: (id: string) => void;
   statusFilter?: string[]; // From CallerFilterSidebar
+  campaignId?: string; // If provided, scope leads to this campaign
 }
 
 export default function LeadsSidebar({
   selectedLeadId,
   onSelectLead,
   statusFilter = [],
+  campaignId,
 }: Props) {
   const [search, setSearch] = useState("");
   const [activeTab, setActiveTab] = useState<"TO_CALL" | "CALLED">("TO_CALL");
 
+  /* Fetch leads — campaign-scoped if campaignId is provided */
   const { data: leads = [], isLoading } = useQuery({
-    queryKey: ["my-leads"],
+    queryKey: campaignId ? ["my-campaign-leads", campaignId] : ["my-leads"],
     queryFn: async () => {
-      const res = await api.get("/leads/my-leads");
-      return res.data;
+      const url = campaignId
+        ? `/campaigns/${campaignId}/my-leads`
+        : "/leads/my-leads";
+      const res = await api.get(url);
+      /* Both endpoints return either an array or { leads: [] } */
+      return Array.isArray(res.data) ? res.data : (res.data.leads ?? []);
     },
   });
 
-  // Apply filters from left sidebar + local search
+  /* Apply filters from left sidebar + local search */
   const filteredLeads = useMemo(() => {
     let result = leads;
 
-    // Search filter
     if (search) {
       const term = search.toLowerCase();
       result = result.filter(
@@ -46,7 +52,7 @@ export default function LeadsSidebar({
       );
     }
 
-    // Status filter from chart clicks
+    /* Status filter from pie-chart clicks */
     if (statusFilter.length > 0) {
       result = result.filter((l: any) => statusFilter.includes(l.status));
     }
@@ -54,7 +60,7 @@ export default function LeadsSidebar({
     return result;
   }, [leads, search, statusFilter]);
 
-  // Tab filter (Fresh vs Active)
+  /* Tab split — Fresh (never called today) vs Active (called today) */
   const list = useMemo(() => {
     return filteredLeads.filter((l: any) =>
       activeTab === "CALLED" ? l.calledToday : !l.calledToday,
