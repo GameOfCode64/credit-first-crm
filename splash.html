@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Loading…</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        width: 420px;
+        height: 260px;
+        background: transparent;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        overflow: hidden;
+        -webkit-app-region: drag; /* allow dragging the splash */
+      }
+
+      .card {
+        width: 100%;
+        height: 100%;
+        background: #1a1a1a;
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 20px;
+        box-shadow: 0 32px 64px rgba(0, 0, 0, 0.5);
+        position: relative;
+        overflow: hidden;
+      }
+
+      /* subtle gradient orb behind logo */
+      .card::before {
+        content: "";
+        position: absolute;
+        top: -60px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 240px;
+        height: 240px;
+        background: radial-gradient(
+          circle,
+          rgba(185, 139, 8, 0.18) 0%,
+          transparent 70%
+        );
+        pointer-events: none;
+      }
+
+      .logo-wrap {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+        z-index: 1;
+      }
+
+      .logo-icon {
+        width: 56px;
+        height: 56px;
+        border-radius: 14px;
+        background: linear-gradient(135deg, #b98b08 0%, #ffd966 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 20px rgba(185, 139, 8, 0.35);
+      }
+
+      .logo-icon svg {
+        width: 30px;
+        height: 30px;
+        fill: white;
+      }
+
+      .app-name {
+        font-size: 18px;
+        font-weight: 700;
+        color: #ffffff;
+        letter-spacing: -0.3px;
+      }
+
+      .status-section {
+        width: 100%;
+        padding: 0 32px;
+        z-index: 1;
+      }
+
+      .status-text {
+        font-size: 12px;
+        color: rgba(255, 255, 255, 0.45);
+        text-align: center;
+        margin-bottom: 10px;
+        min-height: 16px;
+        transition: opacity 0.2s;
+      }
+
+      .progress-track {
+        width: 100%;
+        height: 3px;
+        background: rgba(255, 255, 255, 0.08);
+        border-radius: 99px;
+        overflow: hidden;
+      }
+
+      .progress-bar {
+        height: 100%;
+        border-radius: 99px;
+        background: linear-gradient(90deg, #b98b08, #ffd966);
+        width: 0%;
+        transition: width 0.3s ease;
+      }
+
+      /* indeterminate animation when no % yet */
+      .progress-bar.indeterminate {
+        width: 40% !important;
+        animation: indeterminate 1.4s ease infinite;
+      }
+
+      @keyframes indeterminate {
+        0% {
+          transform: translateX(-120%);
+        }
+        100% {
+          transform: translateX(320%);
+        }
+      }
+
+      .version {
+        position: absolute;
+        bottom: 14px;
+        right: 18px;
+        font-size: 10px;
+        color: rgba(255, 255, 255, 0.2);
+        z-index: 1;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <div class="logo-wrap">
+        <!-- Replace svg path with your actual logo if needed -->
+        <div class="logo-icon">
+          <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path
+              d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"
+            />
+          </svg>
+        </div>
+        <span class="app-name">CRM</span>
+      </div>
+
+      <div class="status-section">
+        <p class="status-text" id="statusText">Starting…</p>
+        <div class="progress-track">
+          <div class="progress-bar indeterminate" id="progressBar"></div>
+        </div>
+      </div>
+
+      <span class="version" id="versionText"></span>
+    </div>
+
+    <script>
+      const statusEl = document.getElementById("statusText");
+      const progressEl = document.getElementById("progressBar");
+      const versionEl = document.getElementById("versionText");
+
+      // Get app version via preload
+      if (window.electronAPI?.getAppVersion) {
+        window.electronAPI.getAppVersion().then((v) => {
+          versionEl.textContent = `v${v}`;
+        });
+      }
+
+      // Listen for status updates from main process
+      if (window.electronAPI?.onUpdateStatus) {
+        window.electronAPI.onUpdateStatus(({ status, progress }) => {
+          statusEl.textContent = status;
+
+          if (typeof progress === "number") {
+            progressEl.classList.remove("indeterminate");
+            progressEl.style.width = `${progress}%`;
+          } else {
+            progressEl.classList.add("indeterminate");
+            progressEl.style.width = "0%";
+          }
+        });
+      }
+    </script>
+  </body>
+</html>

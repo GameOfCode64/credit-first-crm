@@ -1042,11 +1042,11 @@ export default function ManagerTeamManagement() {
           accent="#059669"
         />
         <StatCard
-          label="On Leave"
+          label="In Active"
           value={inactiveCount}
           icon={UserMinus}
           loading={isLoading}
-          accent="#d97706"
+          accent="#FF0000"
         />
         <StatCard
           label="Present Today"
@@ -1250,16 +1250,16 @@ export default function ManagerTeamManagement() {
                                 borderColor: "#bbf7d0",
                               }
                             : {
-                                backgroundColor: "#fffbeb",
-                                color: "#b45309",
+                                backgroundColor: "#FF00001A",
+                                color: "#FF0000",
                                 borderColor: "#fde68a",
                               }
                         }
                       >
                         <span
-                          className={`w-1.5 h-1.5 rounded-full ${member.isActive ? "bg-emerald-500" : "bg-amber-500"}`}
+                          className={`w-1.5 h-1.5 rounded-full ${member.isActive ? "bg-emerald-500" : "bg-rose-500"}`}
                         />
-                        {member.isActive ? "Active" : "On Leave"}
+                        {member.isActive ? "Active" : "In Active"}
                       </button>
                     </td>
 
