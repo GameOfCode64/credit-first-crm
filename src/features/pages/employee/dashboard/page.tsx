@@ -26,7 +26,7 @@ import {
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { Button } from "@/components/ui/button";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 /* ─────────────────────────
    HELPERS
@@ -295,9 +295,9 @@ export default function CallerDashboard() {
                     <ArrowUpDown className="w-3.5 h-3.5 text-gray-400" />
                   </button>
                 </th>
-                <th className="text-center text-sm font-semibold text-gray-700 px-4 py-3.5">
+                {/* <th className="text-center text-sm font-semibold text-gray-700 px-4 py-3.5">
                   Assignee
-                </th>
+                </th> */}
                 <th className="text-center text-sm font-semibold text-gray-700 px-4 py-3.5">
                   Total Leads
                 </th>
@@ -357,9 +357,10 @@ export default function CallerDashboard() {
 
                   return (
                     <tr
+                      onClick={() => navigate(`/employee/my-calls/${c.id}`)}
                       key={c.id}
                       className={cn(
-                        "border-b border-gray-100 hover:bg-gray-50/70 transition-colors",
+                        "border-b border-gray-100 hover:bg-gray-50/70 transition-colors cursor-pointer",
                         idx === paginated.length - 1 && "border-b-0",
                       )}
                     >
@@ -398,11 +399,11 @@ export default function CallerDashboard() {
                       </td>
 
                       {/* Assignees */}
-                      <td className="px-4 py-4">
+                      {/* <td className="px-4 py-4">
                         <div className="flex justify-center">
                           <AssigneeAvatars list={c.assignees || []} />
                         </div>
-                      </td>
+                      </td> */}
 
                       {/* Total leads */}
                       <td className="px-4 py-4 text-center">

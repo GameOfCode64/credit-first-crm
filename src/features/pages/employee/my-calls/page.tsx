@@ -55,7 +55,7 @@ export default function MyCallsPage() {
           + Campaign Calling Report pie.
           Clicking a pie slice filters Panel 2.
           ══════════════════════════════════ */}
-      <div className="w-[380px] flex-shrink-0 border-r overflow-hidden">
+      <div className="w-[440px] flex-shrink-0 border-r overflow-hidden">
         <CallerFilterSidebar
           selectedStatuses={selectedStatuses}
           setSelectedStatuses={setSelectedStatuses}
