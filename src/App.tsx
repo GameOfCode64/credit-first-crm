@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { HashRouter as Router, Routes, Route } from "react-router-dom";
 import LoginPage from "./features/pages/auth/LoginPage";
 import RoleRoute from "./components/global/RoleRoute";
@@ -25,8 +25,14 @@ import WrongPage from "./features/pages/employee/my-calls/_components/Wrong";
 import ManagerCallingReport from "./features/pages/manager/reports/calling-report/Managercallingreport";
 import ManagerAttendance from "./features/pages/manager/reports/attendance/Managerattendance";
 import ManagerTeamManagement from "./features/pages/manager/team-management/page";
+import { useAppStore } from "./hooks/appStore";
 
 export default function App() {
+  const loadVersion = useAppStore((s) => s.loadVersion);
+  useEffect(() => {
+    loadVersion();
+  }, []);
+
   return (
     <Router>
       <Routes>

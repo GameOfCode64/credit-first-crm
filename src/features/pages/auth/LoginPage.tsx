@@ -2,6 +2,7 @@ import React from "react";
 import { Building2, CreditCard, TrendingUp, Shield } from "lucide-react";
 import { Link } from "react-router-dom";
 import LoginForm from "./_components/LoginForm";
+import { useAppStore } from "@/hooks/appStore";
 
 const testimonialData = [
   {
@@ -22,6 +23,7 @@ const testimonialData = [
 ];
 
 const LoginPage = () => {
+  const version = useAppStore((s) => s.version);
   return (
     <div className="grid grid-cols-2 w-full h-screen">
       <div className="w-full bg-[#b98b08] h-full">
@@ -69,9 +71,14 @@ const LoginPage = () => {
             </div>
           </div>
           {/* Copyright */}
-          <h1 className="mt-4 text-white/70 font-semibold">
-            © 2025 Credit First India Pvt Ltd. All rights reserved.
-          </h1>
+          <div className="flex flex-col">
+            <h1 className="mt-4 text-white/70 font-semibold">
+              © 2025 Credit First India Pvt Ltd. All rights reserved.
+            </h1>
+            <p className="mt-4 text-white/70 font-semibold">
+              Version: V{version}
+            </p>
+          </div>
         </div>
       </div>
       <div className="px-24 py-12">
