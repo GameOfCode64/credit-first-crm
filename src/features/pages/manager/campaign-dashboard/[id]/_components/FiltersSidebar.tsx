@@ -28,17 +28,15 @@ const PASTEL_COLORS = [
 
 const getEmployeeColor = (seed: string): string => {
   let hash = 0;
-  for (let i = 0; i < seed.length; i++) {
+  for (let i = 0; i < seed.length; i++)
     hash = seed.charCodeAt(i) + ((hash << 5) - hash);
-  }
   return PASTEL_COLORS[Math.abs(hash) % PASTEL_COLORS.length];
 };
 
 const generateRandomColor = (seed: string): string => {
   let hash = 0;
-  for (let i = 0; i < seed.length; i++) {
+  for (let i = 0; i < seed.length; i++)
     hash = seed.charCodeAt(i) + ((hash << 5) - hash);
-  }
   return `hsl(${Math.abs(hash) % 360}, 65%, 55%)`;
 };
 
@@ -49,15 +47,20 @@ const getDaysAgo = (dateStr?: string): number => {
   );
 };
 
-/* ================= DEMO DEO DATA ================= */
+/* ================= DEMO DATA ================= */
 
 const DEMO_DEO_DATA = [
-  { id: "deo-1", name: "Attempted ", value: 20, color: "#d1b528" },
+  { id: "deo-1", name: "Attempted", value: 20, color: "#d1b528" },
   { id: "deo-2", name: "Connected", value: 12, color: "#93cfad" },
   { id: "deo-3", name: "Pending", value: 65, color: "#f54747" },
-  { id: "deo-4", name: "Skipped ", value: 1, color: "#ab5b50" },
+  { id: "deo-4", name: "Skipped", value: 1, color: "#ab5b50" },
 ];
 const DEMO_DEO_TOTAL = DEMO_DEO_DATA.reduce((sum, d) => sum + d.value, 0);
+
+/* ================= SIZING CONSTANTS ================= */
+// Change these two values to resize all charts uniformly
+const PIE_SIZE = 200; // container width & height in px
+const OUTER_R = 88; // Recharts outerRadius
 
 /* ================= TYPES ================= */
 
@@ -115,7 +118,6 @@ function CampaignHeader({ info }: { info?: CampaignInfo | null }) {
         </h2>
         <EllipsisVertical className="w-5 h-5 text-gray-400 hover:text-gray-600 cursor-pointer" />
       </div>
-
       <div className="flex items-center justify-between">
         <div className="flex flex-col">
           <div className="flex items-center gap-4 text-xs text-gray-500 mb-3">
@@ -132,7 +134,6 @@ function CampaignHeader({ info }: { info?: CampaignInfo | null }) {
               {info.assignedEmployees.length}
             </span>
           </div>
-
           {info.assignedEmployees.length > 0 && (
             <div className="flex items-center gap-1 mb-1">
               {info.assignedEmployees.slice(0, 5).map((emp) => (
@@ -153,7 +154,6 @@ function CampaignHeader({ info }: { info?: CampaignInfo | null }) {
             </div>
           )}
         </div>
-
         <div className="relative w-14 h-14 flex-shrink-0">
           <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
             <circle
@@ -184,6 +184,141 @@ function CampaignHeader({ info }: { info?: CampaignInfo | null }) {
   );
 }
 
+/* ================= CHART SECTION ================= */
+
+function ChartSection({
+  data,
+  selected,
+  onClickItem,
+  total,
+}: {
+  data: { id: string; name: string; value: number; color: string }[];
+  selected: string[];
+  onClickItem: (id: string) => void;
+  total: number;
+}) {
+  const pieData = data.map((d) => ({
+    ...d,
+    _display: d.value === 0 ? 0.3 : d.value,
+  }));
+
+  const CustomTooltip = ({ active, payload }: any) => {
+    if (!active || !payload?.length) return null;
+    const d = payload[0].payload;
+    return (
+      <div className="bg-white border border-gray-200 rounded-lg shadow-lg px-3 py-2 text-xs">
+        <p className="font-semibold text-gray-800">{d.name}</p>
+        <p className="text-gray-500">{d.value} leads</p>
+      </div>
+    );
+  };
+
+  return (
+    <div className="flex items-start gap-3">
+      {/* ── Pie — left ── */}
+      <div
+        className="flex-shrink-0"
+        style={{ width: PIE_SIZE, height: PIE_SIZE }}
+      >
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
+            <Pie
+              data={pieData}
+              dataKey="_display"
+              nameKey="name"
+              cx="50%"
+              cy="50%"
+              outerRadius={OUTER_R}
+              paddingAngle={0}
+              strokeWidth={0}
+              onClick={(_, index) => onClickItem(data[index].id)}
+              style={{ cursor: "pointer" }}
+            >
+              {data.map((entry) => (
+                <Cell
+                  key={entry.id}
+                  fill={entry.color}
+                  opacity={
+                    selected.length === 0 || selected.includes(entry.id)
+                      ? entry.value > 0
+                        ? 1
+                        : 0.15
+                      : 0.3
+                  }
+                  stroke="none"
+                />
+              ))}
+            </Pie>
+            <Tooltip content={<CustomTooltip />} />
+          </PieChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* ── Legend — right, scrollable, same height as pie ── */}
+      <ScrollArea className="flex-1" style={{ height: PIE_SIZE }}>
+        <div className="space-y-0.5 pr-2">
+          {data.map((item) => (
+            <div
+              key={item.id}
+              onClick={() => onClickItem(item.id)}
+              className={`flex items-center gap-2 px-2 py-1.5 rounded cursor-pointer transition-colors text-xs ${
+                selected.includes(item.id) ? "bg-indigo-50" : "hover:bg-gray-50"
+              }`}
+            >
+              <div
+                className="w-3 h-3 rounded-sm flex-shrink-0"
+                style={{
+                  backgroundColor: item.color,
+                  opacity: item.value === 0 ? 0.3 : 1,
+                }}
+              />
+              <span className="flex-1 truncate font-medium text-gray-700">
+                {item.name}
+              </span>
+              <span className="text-gray-400 whitespace-nowrap">
+                ({total > 0 ? Math.round((item.value / total) * 100) : 0}%)
+              </span>
+            </div>
+          ))}
+        </div>
+      </ScrollArea>
+    </div>
+  );
+}
+
+/* ================= COLLAPSIBLE SECTION ================= */
+
+function Section({
+  title,
+  open,
+  onToggle,
+  children,
+}: {
+  title: string;
+  open: boolean;
+  onToggle: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <section>
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-sm font-semibold text-gray-800">{title}</h3>
+        <button
+          onClick={onToggle}
+          className="text-gray-400 hover:text-gray-600"
+        >
+          {open ? (
+            <ChevronUp className="w-4 h-4" />
+          ) : (
+            <ChevronDown className="w-4 h-4" />
+          )}
+        </button>
+      </div>
+      {open && children}
+    </section>
+  );
+}
+
 /* ================= MAIN COMPONENT ================= */
 
 export default function FiltersSidebar({
@@ -195,298 +330,154 @@ export default function FiltersSidebar({
   setSelectedStatuses,
   setSelectedEmployees,
 }: Props) {
-  const [expandedSections, setExpandedSections] = React.useState({
+  const [expanded, setExpanded] = React.useState({
     status: true,
     employee: true,
     deo: true,
   });
-
   const [selectedDeos, setSelectedDeos] = React.useState<string[]>([]);
 
-  const toggleSection = (section: keyof typeof expandedSections) =>
-    setExpandedSections((prev) => ({ ...prev, [section]: !prev[section] }));
+  const toggle = (k: keyof typeof expanded) =>
+    setExpanded((prev) => ({ ...prev, [k]: !prev[k] }));
 
-  /* ================= COMPUTED DATA ================= */
-
-  const allPipelineStatuses = [
+  /* ── Pipeline statuses ── */
+  const allStatuses = [
     ...(pipeline?.initialStage ?? []).map((name: string) => ({
       name,
-      // ← FIX: use pipeline color via generateRandomColor, not hardcoded "#466e62"
       color: "#466e62",
-      stage: "INITIAL",
     })),
     ...(pipeline?.activeStage ?? []).map((s: any) => ({
       name: s.name,
       color: s.color || generateRandomColor(s.name),
-      stage: "ACTIVE",
     })),
     ...(pipeline?.closedStage ?? []).map((s: any) => ({
       name: s.name,
       color: s.color || generateRandomColor(s.name),
-      stage: "CLOSED",
     })),
   ];
 
   const statusCounts: Record<string, number> = {};
   leads.forEach((lead) => {
     statusCounts[lead.status] = (statusCounts[lead.status] || 0) + 1;
+    if (!allStatuses.find((s) => s.name === lead.status))
+      allStatuses.push({ name: lead.status, color: "#466e62" });
   });
 
-  // Add statuses found in leads but not in pipeline config
-  leads.forEach((lead) => {
-    const knownNames = allPipelineStatuses.map((s) => s.name);
-    if (!knownNames.includes(lead.status)) {
-      allPipelineStatuses.push({
-        name: lead.status,
-        color: "#466e62",
-        stage: "INITIAL",
-      });
-    }
-  });
-
-  // ← FIX: removed .filter((s) => s.value > 0)
-  // ALL pipeline statuses now show even if count is 0
-  const statusData = allPipelineStatuses.map((s) => ({
+  const statusData = allStatuses.map((s) => ({
     id: s.name,
     name: s.name,
     value: statusCounts[s.name] || 0,
     color: s.color,
   }));
 
-  const employeeCounts: Record<
+  /* ── Employee data ── */
+  const empCounts: Record<
     string,
     { name: string; count: number; color: string }
   > = {};
   leads.forEach((lead: any) => {
-    const empId = lead.assignedToId || lead.assignedTo?.id;
-    const empName = lead.assignedTo?.name;
-    if (empId) {
-      if (!employeeCounts[empId]) {
-        employeeCounts[empId] = {
-          name: empName || "Unknown",
+    const id = lead.assignedToId || lead.assignedTo?.id;
+    const name = lead.assignedTo?.name;
+    if (id) {
+      if (!empCounts[id])
+        empCounts[id] = {
+          name: name || "Unknown",
           count: 0,
-          color: getEmployeeColor(empId),
+          color: getEmployeeColor(id),
         };
-      }
-      employeeCounts[empId].count++;
+      empCounts[id].count++;
     }
   });
-
-  const employeeData = Object.entries(employeeCounts).map(([id, d]) => ({
+  const employeeData = Object.entries(empCounts).map(([id, d]) => ({
     id,
     name: d.name,
     value: d.count,
     color: d.color,
   }));
 
-  /* ================= HANDLERS ================= */
-
-  const handleStatusClick = (id: string) => {
-    const status = id as LeadStatus;
+  /* ── Handlers ── */
+  const handleStatus = (id: string) => {
+    const s = id as LeadStatus;
     setSelectedStatuses(
-      selectedStatuses.includes(status)
-        ? selectedStatuses.filter((s) => s !== status)
-        : [...selectedStatuses, status],
+      selectedStatuses.includes(s)
+        ? selectedStatuses.filter((x) => x !== s)
+        : [...selectedStatuses, s],
     );
   };
-
-  const handleEmployeeClick = (id: string) =>
+  const handleEmployee = (id: string) =>
     setSelectedEmployees(
       selectedEmployees.includes(id)
-        ? selectedEmployees.filter((e) => e !== id)
+        ? selectedEmployees.filter((x) => x !== id)
         : [...selectedEmployees, id],
     );
-
-  const handleDeoClick = (id: string) =>
+  const handleDeo = (id: string) =>
     setSelectedDeos(
       selectedDeos.includes(id)
-        ? selectedDeos.filter((d) => d !== id)
+        ? selectedDeos.filter((x) => x !== id)
         : [...selectedDeos, id],
     );
 
-  /* ================= CHART + LEGEND ================= */
-
-  const renderChartSection = (
-    data: { id: string; name: string; value: number; color: string }[],
-    selected: string[],
-    onClickItem: (id: string) => void,
-    totalOverride?: number,
-  ) => {
-    const total = totalOverride ?? leads.length;
-
-    // Give 0-value items a tiny slice so they appear in the pie
-    const pieData = data.map((d) => ({
-      ...d,
-      _display: d.value === 0 ? 0.3 : d.value,
-    }));
-
-    return (
-      <div className="flex gap-3">
-        <div
-          className="flex-shrink-0"
-          style={{ width: "160px", height: "160px" }}
-        >
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie
-                data={pieData}
-                dataKey="_display"
-                nameKey="name"
-                cx="50%"
-                cy="50%"
-                outerRadius={75}
-                onClick={(_, index) => onClickItem(data[index].id)}
-                style={{ cursor: "pointer" }}
-              >
-                {data.map((entry) => (
-                  <Cell
-                    key={entry.id}
-                    fill={entry.color}
-                    opacity={
-                      selected.length === 0 || selected.includes(entry.id)
-                        ? entry.value > 0
-                          ? 1
-                          : 0.15
-                        : 0.3
-                    }
-                    stroke="#fff"
-                    strokeWidth={2}
-                  />
-                ))}
-              </Pie>
-              <Tooltip
-                formatter={(value: any, name: any, props: any) =>
-                  // Show real value in tooltip, not _display
-                  [props.payload.value, name]
-                }
-              />
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
-
-        <ScrollArea className="flex-1" style={{ height: "160px" }}>
-          <div className="space-y-1 pr-2">
-            {data.map((item) => (
-              <div
-                key={item.id}
-                onClick={() => onClickItem(item.id)}
-                className={`flex items-center gap-2 px-2 py-1.5 rounded cursor-pointer transition-colors text-xs ${
-                  selected.includes(item.id)
-                    ? "bg-indigo-50"
-                    : "hover:bg-gray-50"
-                }`}
-              >
-                <div
-                  className="w-4 h-3 flex-shrink-0"
-                  style={{ backgroundColor: item.color }}
-                />
-                <span className="flex-1 truncate font-medium">{item.name}</span>
-                <span className="text-gray-500 font-semibold whitespace-nowrap">
-                  <span className="text-gray-400">
-                    ({total > 0 ? Math.round((item.value / total) * 100) : 0}%)
-                  </span>
-                </span>
-              </div>
-            ))}
-          </div>
-        </ScrollArea>
-      </div>
-    );
-  };
-
-  /* ================= RENDER ================= */
-
   return (
-    <div className="w-[430px] bg-white border-r flex flex-col h-full">
+    <div className="w-[480px] bg-white border-r flex flex-col h-full">
       <CampaignHeader info={campaignInfo} />
 
       <div className="flex-1 overflow-y-auto p-5 space-y-6">
-        {/* ASSIGNED TO */}
+        {/* Campaign Assignees */}
         {employeeData.length > 0 && (
-          <section>
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-semibold">
-                Campaign Assignees Report
-              </h3>
-              <button
-                onClick={() => toggleSection("employee")}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                {expandedSections.employee ? (
-                  <ChevronUp className="w-4 h-4" />
-                ) : (
-                  <ChevronDown className="w-4 h-4" />
-                )}
-              </button>
-            </div>
-            {expandedSections.employee &&
-              renderChartSection(
-                employeeData,
-                selectedEmployees,
-                handleEmployeeClick,
-              )}
-          </section>
-        )}
-
-        {employeeData.length > 0 && <div className="border-t" />}
-
-        {/* DEO — demo data */}
-        <section>
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <h3 className="text-sm font-semibold">Campaign Calling Report</h3>
-            </div>
-            <button
-              onClick={() => toggleSection("deo")}
-              className="text-gray-400 hover:text-gray-600"
+          <>
+            <Section
+              title="Campaign Assignees Report"
+              open={expanded.employee}
+              onToggle={() => toggle("employee")}
             >
-              {expandedSections.deo ? (
-                <ChevronUp className="w-4 h-4" />
-              ) : (
-                <ChevronDown className="w-4 h-4" />
-              )}
-            </button>
-          </div>
-          {expandedSections.deo &&
-            renderChartSection(
-              DEMO_DEO_DATA,
-              selectedDeos,
-              handleDeoClick,
-              DEMO_DEO_TOTAL,
-            )}
-        </section>
-
-        {/* STATUS */}
-        {statusData.length > 0 && (
-          <section>
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-semibold">Leads Status Report</h3>
-              <button
-                onClick={() => toggleSection("status")}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                {expandedSections.status ? (
-                  <ChevronUp className="w-4 h-4" />
-                ) : (
-                  <ChevronDown className="w-4 h-4" />
-                )}
-              </button>
-            </div>
-            {expandedSections.status &&
-              renderChartSection(
-                statusData,
-                selectedStatuses,
-                handleStatusClick,
-              )}
-          </section>
+              <ChartSection
+                data={employeeData}
+                selected={selectedEmployees}
+                onClickItem={handleEmployee}
+                total={leads.length}
+              />
+            </Section>
+            <div className="border-t" />
+          </>
         )}
 
-        {statusData.length > 0 && <div className="border-t" />}
+        {/* Calling Report */}
+        <Section
+          title="Campaign Calling Report"
+          open={expanded.deo}
+          onToggle={() => toggle("deo")}
+        >
+          <ChartSection
+            data={DEMO_DEO_DATA}
+            selected={selectedDeos}
+            onClickItem={handleDeo}
+            total={DEMO_DEO_TOTAL}
+          />
+        </Section>
+
+        {/* Status Report */}
+        {statusData.length > 0 && (
+          <>
+            <div className="border-t" />
+            <Section
+              title="Leads Status Report"
+              open={expanded.status}
+              onToggle={() => toggle("status")}
+            >
+              <ChartSection
+                data={statusData}
+                selected={selectedStatuses}
+                onClickItem={handleStatus}
+                total={leads.length}
+              />
+            </Section>
+          </>
+        )}
 
         {statusData.length === 0 && employeeData.length === 0 && (
-          <div className="text-center text-sm text-gray-400 py-8">
+          <p className="text-center text-sm text-gray-400 py-8">
             No leads in this campaign yet
-          </div>
+          </p>
         )}
       </div>
     </div>
