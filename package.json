@@ -1,7 +1,7 @@
 {
   "name": "credit-first-crm",
   "productName": "credit-first-crm",
-  "version": "1.1.4",
+  "version": "1.1.5",
   "repository": "https://github.com/GameOfCode64/credit-first-crm",
   "description": "credit first crm desktop application",
   "main": ".vite/build/main.js",
