@@ -8,11 +8,15 @@ export interface UploadSession {
   id: string;
   fileName: string;
   status: string;
+  headers?: string[];
+  sampleRows?: Record<string, any>[];
+  sheets?: string[]; // sheet names returned for multi-sheet Excel files
   stats?: {
     totalRows: number;
     duplicateCount: number;
     uniqueCount: number;
   };
+  duplicateRule?: { action: string };
 }
 
 /* ================= UPLOAD FLOW ================= */
@@ -30,6 +34,18 @@ export const createUpload = async (file: File): Promise<UploadSession> => {
 
 export const getUploadSession = async (id: string): Promise<UploadSession> => {
   const res = await api.get(`/uploads/${id}`);
+  return res.data;
+};
+
+// POST /uploads/:id/select-sheet
+// Called when user picks a sheet from a multi-sheet Excel file.
+// Backend re-parses the file using only that sheet and updates
+// headers + sampleRows on the UploadSession.
+export const selectSheet = async (
+  id: string,
+  sheetName: string,
+): Promise<UploadSession> => {
+  const res = await api.post(`/uploads/${id}/select-sheet`, { sheetName });
   return res.data;
 };
 
