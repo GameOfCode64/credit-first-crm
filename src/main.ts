@@ -71,6 +71,7 @@ const createMainWindow = () => {
   mainWindow.once("ready-to-show", () => {
     splashWindow?.close();
     splashWindow = null;
+    mainWindow?.webContents.setZoomFactor(0.8); // Default zoom: 80%
     mainWindow?.show();
   });
 
