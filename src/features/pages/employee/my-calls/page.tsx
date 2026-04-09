@@ -18,7 +18,6 @@ export default function MyCallsPage() {
   const { data: rawLeads = [] } = useQuery({
     queryKey: ["my-leads", campaignId],
     queryFn: async () => {
-      // Always use /leads/my-leads — pass campaignId as query param to scope results
       const url = campaignId
         ? `/leads/my-leads?campaignId=${campaignId}`
         : "/leads/my-leads";
@@ -44,7 +43,7 @@ export default function MyCallsPage() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-white">
-      <div className="w-[440px] flex-shrink-0 border-r overflow-hidden">
+      <div className="flex-[27] min-w-0 border-r overflow-hidden">
         <CallerFilterSidebar
           campaignId={campaignId}
           selectedStatuses={selectedStatuses}
@@ -54,7 +53,7 @@ export default function MyCallsPage() {
         />
       </div>
 
-      <div className="w-[380px] flex-shrink-0 border-r overflow-hidden">
+      <div className="flex-[23] min-w-0 border-r overflow-hidden">
         <LeadsSidebar
           selectedLeadId={selectedLeadId}
           onSelectLead={setSelectedLeadId}
@@ -63,7 +62,7 @@ export default function MyCallsPage() {
         />
       </div>
 
-      <div className="flex-1 min-w-0 overflow-hidden">
+      <div className="flex-[50] min-w-0 overflow-hidden">
         <LeadDetailPanel
           leadId={selectedLeadId}
           onNext={handleNext}
