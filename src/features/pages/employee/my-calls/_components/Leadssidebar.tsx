@@ -27,10 +27,10 @@ export default function LeadsSidebar({
 
   /* Fetch leads — campaign-scoped if campaignId is provided */
   const { data: leads = [], isLoading } = useQuery({
-    queryKey: campaignId ? ["my-campaign-leads", campaignId] : ["my-leads"],
+    queryKey: ["my-leads", campaignId ?? "all"],
     queryFn: async () => {
       const url = campaignId
-        ? `/campaigns/${campaignId}/my-leads`
+        ? `/leads/my-leads?campaignId=${campaignId}`
         : "/leads/my-leads";
       const res = await api.get(url);
       /* Both endpoints return either an array or { leads: [] } */

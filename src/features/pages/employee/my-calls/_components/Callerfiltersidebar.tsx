@@ -8,6 +8,7 @@ import { ChevronUp, ChevronDown } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 interface Props {
+  campaignId?: string;
   selectedStatuses: string[];
   setSelectedStatuses: (v: string[]) => void;
   selectedCallStats: string[];
@@ -35,7 +36,7 @@ const CALL_COLORS: Record<string, string> = {
 };
 
 /* ═══════════════════════════════════════
-   PIE (top, large) + LEGEND (below)
+   PIE + LEGEND
    ═══════════════════════════════════════ */
 function PieWithLegend({
   data,
@@ -63,7 +64,6 @@ function PieWithLegend({
 
   return (
     <div className="flex items-start gap-3">
-      {/* ── Pie — left side ── */}
       <div className="flex-shrink-0 w-[200px] h-[200px]">
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
@@ -97,7 +97,6 @@ function PieWithLegend({
         </ResponsiveContainer>
       </div>
 
-      {/* ── Legend — right side, scrollable ── */}
       <div
         className="flex-1 min-w-0 overflow-y-auto"
         style={{
@@ -178,6 +177,7 @@ function Section({
    MAIN COMPONENT
    ══════════════════════ */
 export default function CallerFilterSidebar({
+  campaignId,
   selectedStatuses,
   setSelectedStatuses,
   selectedCallStats,
@@ -186,9 +186,16 @@ export default function CallerFilterSidebar({
   const [statusOpen, setStatusOpen] = useState(true);
   const [callOpen, setCallOpen] = useState(true);
 
+  /* ── Scoped to campaign — same route, campaignId as query param ── */
   const { data: leads = [] } = useQuery({
-    queryKey: ["my-leads"],
-    queryFn: async () => (await api.get("/leads/my-leads")).data,
+    queryKey: ["my-leads", campaignId ?? "all"],
+    queryFn: async () => {
+      const url = campaignId
+        ? `/leads/my-leads?campaignId=${campaignId}`
+        : "/leads/my-leads";
+      const res = await api.get(url);
+      return Array.isArray(res.data) ? res.data : (res.data.leads ?? []);
+    },
   });
 
   const { data: pipeline } = useQuery({

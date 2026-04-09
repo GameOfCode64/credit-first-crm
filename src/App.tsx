@@ -92,7 +92,7 @@ export default function App() {
           {/*  */}
           <Route path="dashboard" element={<ShowCallingDataDashboard />} />
           <Route path="search" element={<SearchPage />} />
-          <Route path="my-calls/:id" element={<MyCallsPage />} />
+          <Route path="my-calls/:campaignId" element={<MyCallsPage />} />
           <Route path="my-calls" element={<WrongPage />} />
           <Route path="calling-report" element={<EmployeeCallingReport />} />
           <Route path="attendance" element={<EmployeeAttendance />} />
