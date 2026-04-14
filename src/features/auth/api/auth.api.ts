@@ -1,6 +1,12 @@
-import { api } from "../../../lib/api";
+import { api } from "@/lib/api";
 
-export const loginApi = async (email: string, password: string) => {
-  const res = await api.post("/auth/login", { email, password });
+export const loginApi = async (identifier: string, password: string) => {
+  const isEmail = identifier.includes("@");
+
+  const payload = isEmail
+    ? { email: identifier, password }
+    : { username: identifier, password };
+
+  const res = await api.post("/auth/login", payload);
   return res.data;
 };

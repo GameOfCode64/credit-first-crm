@@ -51,6 +51,7 @@ interface Employee {
 interface CreateForm {
   name: string;
   email: string;
+  username: string;
   password: string;
   role: "EMPLOYEE" | "MANAGER";
 }
@@ -196,7 +197,7 @@ function Field({ label, required, children }: FieldProps) {
 }
 const inputBase =
   "w-full border border-zinc-200 rounded-lg py-2.5 text-sm text-zinc-800 bg-white outline-none " +
-  "focus:border-[#b98b08] focus:ring-2 focus:ring-[#b98b08]/10 transition-all placeholder:text-zinc-300";
+  "focus:border-[#b98b08] focus:ring-2 focus:ring-[#b98b08]/10 transition-all placeholder:text-zinc-500";
 
 interface TextInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   icon?: React.ElementType;
@@ -205,7 +206,7 @@ function TextInput({ icon: Icon, ...props }: TextInputProps) {
   return (
     <div className="relative">
       {Icon && (
-        <Icon className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-300 pointer-events-none" />
+        <Icon className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-500 pointer-events-none" />
       )}
       <input
         {...props}
@@ -295,6 +296,7 @@ function CreateModal({ onClose, onSave, loading }: CreateModalProps) {
   const [form, setForm] = useState<CreateForm>({
     name: "",
     email: "",
+    username: "",
     password: "",
     role: "EMPLOYEE",
   });
@@ -318,7 +320,7 @@ function CreateModal({ onClose, onSave, loading }: CreateModalProps) {
       />
       <div className="px-6 py-5 space-y-4">
         <div className="grid grid-cols-2 gap-4">
-          <div className="col-span-2">
+          <div className="col-span-2 text-zinc-700">
             <Field label="Full Name" required>
               <TextInput
                 icon={Users}
@@ -335,6 +337,14 @@ function CreateModal({ onClose, onSave, loading }: CreateModalProps) {
               placeholder="email@company.com"
               value={form.email}
               onChange={set("email")}
+            />
+          </Field>
+          <Field label="Username">
+            <TextInput
+              icon={Users}
+              placeholder="e.g. rahul.sharma (optional)"
+              value={form.username}
+              onChange={set("username")}
             />
           </Field>
           <Field label="Role" required>
@@ -569,29 +579,29 @@ function LeaveModal({ user, onClose, onConfirm, loading }: LeaveModalProps) {
       <div className="px-6 pt-7 pb-5 text-center">
         <div
           className={`w-12 h-12 rounded-xl mx-auto mb-4 flex items-center justify-center
-          ${activate ? "bg-emerald-50" : "bg-rose-50"}`}
+          ${activate ? "bg-emerald-50" : "bg-amber-50"}`}
         >
           {activate ? (
             <UserCheck className="w-5 h-5 text-emerald-600" />
           ) : (
-            <UserMinus className="w-5 h-5 text-rose-500" />
+            <UserMinus className="w-5 h-5 text-amber-600" />
           )}
         </div>
         <h3 className="text-[15px] font-semibold text-zinc-900 mb-2">
-          {activate ? "Restore to Active?" : "Mark user as Inactive?"}
+          {activate ? "Restore to Active?" : "Mark as On Leave?"}
         </h3>
         <p className="text-sm text-zinc-500 leading-relaxed">
           {activate
             ? `${user.name} will be restored and available for lead assignments.`
-            : `${user.name} will be marked as inactive. This user can't be able to login in CRM.`}
+            : `${user.name} will be marked on leave. This is separate from attendance check-in.`}
         </p>
       </div>
       <ModalFooter
         onClose={onClose}
         onConfirm={onConfirm}
         loading={loading}
-        confirmLabel={activate ? "Activate" : "Inactivate"}
-        confirmColor={activate ? "#059669" : "#FF0000"}
+        confirmLabel={activate ? "Activate" : "Mark Leave"}
+        confirmColor={activate ? "#059669" : "#d97706"}
       />
     </Modal>
   );
@@ -950,7 +960,7 @@ export default function ManagerTeamManagement() {
   const FILTERS: { key: typeof filter; label: string; count: number }[] = [
     { key: "ALL", label: "All", count: employees.length },
     { key: "ACTIVE", label: "Active", count: activeCount },
-    { key: "INACTIVE", label: "In Active", count: inactiveCount },
+    { key: "INACTIVE", label: "On Leave", count: inactiveCount },
     { key: "PRESENT", label: "Present Today", count: presentCount },
   ];
 
@@ -1042,11 +1052,11 @@ export default function ManagerTeamManagement() {
           accent="#059669"
         />
         <StatCard
-          label="In Active"
+          label="On Leave"
           value={inactiveCount}
           icon={UserMinus}
           loading={isLoading}
-          accent="#FF0000"
+          accent="#d97706"
         />
         <StatCard
           label="Present Today"
@@ -1250,16 +1260,16 @@ export default function ManagerTeamManagement() {
                                 borderColor: "#bbf7d0",
                               }
                             : {
-                                backgroundColor: "#FF00001A",
-                                color: "#FF0000",
+                                backgroundColor: "#fffbeb",
+                                color: "#b45309",
                                 borderColor: "#fde68a",
                               }
                         }
                       >
                         <span
-                          className={`w-1.5 h-1.5 rounded-full ${member.isActive ? "bg-emerald-500" : "bg-rose-500"}`}
+                          className={`w-1.5 h-1.5 rounded-full ${member.isActive ? "bg-emerald-500" : "bg-amber-500"}`}
                         />
-                        {member.isActive ? "Active" : "In Active"}
+                        {member.isActive ? "Active" : "On Leave"}
                       </button>
                     </td>
 

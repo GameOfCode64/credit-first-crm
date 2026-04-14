@@ -28,13 +28,13 @@ import { Button } from "../../../../components/ui/button";
 import { ArrowRight, Eye, EyeOff, Loader } from "lucide-react";
 
 const roles = [
-  { label: "Admin", value: "ADMIN" },
   { label: "Manager", value: "MANAGER" },
   { label: "Employee", value: "EMPLOYEE" },
 ];
 
 const LoginForm = () => {
-  const [isLoading, setisLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [loginError, setLoginError] = useState<string | null>(null);
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
 
@@ -43,27 +43,34 @@ const LoginForm = () => {
     defaultValues: {
       email: "",
       password: "",
-      //   role: undefined,
-      //   rememberMe: false,
     },
   });
 
   async function onSubmit(values: z.infer<typeof loginFormSchema>) {
+    setLoginError(null); // clear previous error
+
+    // Detect if input is an email or username
+    const isEmail = values.email.includes("@");
+    const payload = {
+      ...values,
+      // Send as "email" if it looks like one, otherwise as "username"
+      ...(isEmail
+        ? { email: values.email, username: undefined }
+        : { username: values.email, email: undefined }),
+    };
+
     try {
-      setisLoading(true);
-      const res = await loginUser(values);
-      setisLoading(false);
+      setIsLoading(true);
+      const res = await loginUser(payload);
 
       const { token, user } = res;
 
-      // 🔐 STORE AUTH DATA (CONSISTENT KEYS)
       localStorage.setItem("accessToken", token);
-      localStorage.setItem("role", user.role.toLowerCase()); // IMPORTANT
+      localStorage.setItem("role", user.role.toLowerCase());
       localStorage.setItem("email", user.email);
       localStorage.setItem("userId", user.id);
       localStorage.setItem("name", user.name);
 
-      // 🚀 ROLE-BASED REDIRECT
       if (user.role === "ADMIN") {
         navigate("/admin/dashboard");
       } else if (user.role === "MANAGER") {
@@ -72,9 +79,13 @@ const LoginForm = () => {
         navigate("/employee/dashboard");
       }
     } catch (err) {
-      setisLoading(false);
       console.error(err);
-      alert("Login failed: Invalid credentials");
+      setLoginError(
+        "Invalid credentials. Please check your details and try again.",
+      );
+    } finally {
+      // ✅ Always re-enable the form — fixes the freeze on failed login
+      setIsLoading(false);
     }
   }
 
@@ -83,18 +94,31 @@ const LoginForm = () => {
       <Card className="w-full py-12 border-none shadow-md px-8">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            {/* Email */}
+            {/* Error Banner */}
+            {loginError && (
+              <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-md px-4 py-3">
+                {loginError}
+              </div>
+            )}
+
+            {/* Email or Username */}
             <FormField
               control={form.control}
               name="email"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Email address</FormLabel>
+                  <FormLabel>Email or Username</FormLabel>
                   <FormControl>
                     <Input
-                      placeholder="name@creditfirstindia.com"
+                      placeholder="Username or Email"
                       {...field}
+                      disabled={isLoading}
                       className="ring-white"
+                      autoComplete="username"
+                      onChange={(e) => {
+                        field.onChange(e);
+                        if (loginError) setLoginError(null); // clear error on edit
+                      }}
                     />
                   </FormControl>
                   <FormMessage />
@@ -115,12 +139,19 @@ const LoginForm = () => {
                         type={showPassword ? "text" : "password"}
                         placeholder="Enter your password"
                         {...field}
+                        disabled={isLoading}
                         className="ring-white pr-10"
+                        autoComplete="current-password"
+                        onChange={(e) => {
+                          field.onChange(e);
+                          if (loginError) setLoginError(null); // clear error on edit
+                        }}
                       />
                       <button
                         type="button"
                         className="absolute right-3 top-2.5 text-gray-500"
                         onClick={() => setShowPassword(!showPassword)}
+                        tabIndex={-1}
                       >
                         {showPassword ? (
                           <EyeOff size={18} />
@@ -143,7 +174,11 @@ const LoginForm = () => {
                 <FormItem>
                   <FormLabel>Role</FormLabel>
                   <FormControl>
-                    <Select value={field.value} onValueChange={field.onChange}>
+                    <Select
+                      value={field.value}
+                      onValueChange={field.onChange}
+                      disabled={isLoading}
+                    >
                       <SelectTrigger className="ring-white">
                         <SelectValue placeholder="Select" />
                       </SelectTrigger>
@@ -173,6 +208,7 @@ const LoginForm = () => {
                         id="rememberMe"
                         checked={field.value}
                         onCheckedChange={field.onChange}
+                        disabled={isLoading}
                       />
                       <Label htmlFor="rememberMe">Remember me for 7 days</Label>
                     </div>
@@ -187,7 +223,7 @@ const LoginForm = () => {
             >
               {isLoading ? (
                 <>
-                  <Loader className="animate-spin" size={18} />
+                  <Loader className="animate-spin mr-2" size={18} />
                   Signing In...
                 </>
               ) : (

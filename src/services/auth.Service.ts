@@ -2,8 +2,11 @@ import { loginApi } from "../features/auth/api/auth.api";
 import { api } from "../lib/api";
 
 interface LoginPayload {
-  email: string;
+  email?: string; // present when user typed an email
+  username?: string; // present when user typed a username
   password: string;
+  role?: string;
+  rememberMe?: boolean;
 }
 
 export interface CreateUserPayload {
@@ -14,7 +17,9 @@ export interface CreateUserPayload {
 }
 
 export const loginUser = async (payload: LoginPayload) => {
-  return loginApi(payload.email, payload.password);
+  // Use whichever identifier was provided
+  const identifier = payload.email ?? payload.username ?? "";
+  return loginApi(identifier, payload.password);
 };
 
 export const createUser = async (payload: CreateUserPayload) => {
