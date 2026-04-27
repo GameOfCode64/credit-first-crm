@@ -27,6 +27,7 @@ import {
   LogOut,
   Clock,
   AtSign,
+  Phone,
 } from "lucide-react";
 import {
   Dialog,
@@ -70,11 +71,13 @@ interface Employee {
   checkIn?: string | null;
   checkOut?: string | null;
   leadsAssigned?: number;
+  phone?: string;
   _count?: { assignedLeads?: number };
 }
 
 interface CreateForm {
   name: string;
+  phone: number | string;
   email: string;
   username: string;
   password: string;
@@ -84,6 +87,7 @@ interface EditForm {
   name: string;
   email: string;
   username: string;
+  phone: string;
   role: "EMPLOYEE" | "MANAGER";
 }
 interface ToastItem {
@@ -217,6 +221,7 @@ function CreateDialog({
   const [form, setForm] = useState<CreateForm>({
     name: "",
     email: "",
+    phone: "",
     username: "",
     password: "",
     role: "EMPLOYEE",
@@ -228,6 +233,7 @@ function CreateDialog({
       setForm({
         name: "",
         email: "",
+        phone: "",
         username: "",
         password: "",
         role: "EMPLOYEE",
@@ -293,6 +299,14 @@ function CreateDialog({
               placeholder="rahul.sharma"
               value={form.username}
               onChange={set("username")}
+            />
+          </Field>
+          <Field label="phone">
+            <IconInput
+              icon={Phone}
+              placeholder="123-456-7890"
+              value={form.phone}
+              onChange={set("phone")}
             />
           </Field>
           <Field label="Role" required>
@@ -383,6 +397,7 @@ function EditDialog({
     name: "",
     email: "",
     username: "",
+    phone: "",
     role: "EMPLOYEE",
   });
 
@@ -391,6 +406,7 @@ function EditDialog({
       setForm({
         name: user.name,
         email: user.email,
+        phone: user.phone ?? "",
         username: user.username ?? "",
         role: user.role,
       });
@@ -454,6 +470,16 @@ function EditDialog({
               value={form.username}
               onChange={set("username")}
               placeholder="rahul.sharma"
+            />
+          </Field>
+
+          <Field label="Phone">
+            <IconInput
+              icon={Phone}
+              type="tel"
+              value={form.phone}
+              onChange={set("phone")}
+              placeholder="123-456-7890"
             />
           </Field>
           <div className="col-span-2">
@@ -929,11 +955,13 @@ export default function ManagerTeamManagement() {
       name,
       email,
       username,
+      phone,
       role,
     }: EditForm & { id: string }) =>
       api.patch(`/users/team-members/${id}`, {
         name,
         email,
+        phone: phone.trim() ? phone.trim() : null,
         role,
         ...(username?.trim()
           ? { username: username.trim() }
@@ -1263,13 +1291,13 @@ export default function ManagerTeamManagement() {
                     </td>
 
                     <td className="px-4 py-3.5">
-                      <div className="text-[13px] text-zinc-600">
-                        {member.email}
+                      <div className="text-[13px] font-bold text-zinc-600">
+                        +91 {member.phone! ?? "—"}
                       </div>
                       {member.username && (
                         <div className="text-[11px] text-zinc-400 mt-0.5 flex items-center gap-0.5">
-                          <AtSign className="w-2.5 h-2.5" />
-                          {member.username}
+                          {/* <AtSign className="w-2.5 h-2.5" /> */}
+                          {member.email ? member.email : member.username}
                         </div>
                       )}
                     </td>

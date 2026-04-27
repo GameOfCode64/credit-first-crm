@@ -396,7 +396,7 @@ export default function ManagerCampaigns() {
 
                     return (
                       <tr
-                        onClick={() => navigate(`/manager/leads/${c.id}`)}
+                        onDoubleClick={() => navigate(`/manager/leads/${c.id}`)}
                         key={c.id}
                         className={cn(
                           "border-b border-gray-100 hover:bg-gray-50/70 transition-colors",
